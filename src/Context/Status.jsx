@@ -15,7 +15,7 @@ export default function Status({ Compoment }) {
   const Password = window.localStorage.getItem("TokenPs");
 
   useEffect(() => {
-    if (Email !== "") {
+    if (Email) {
       axios
         .post("http://localhost:9000/Account/GetAccount", {
           Email: Email,
@@ -30,6 +30,7 @@ export default function Status({ Compoment }) {
               Name: "",
               Email: "",
               Password: "",
+              Type: ""
             });
           }
         })

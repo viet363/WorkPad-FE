@@ -19,8 +19,11 @@ export default function NoteEdit() {
   const [ContentNote, setContentNote] = useState("");
   const [SearchNote, setSearchNote] = useState([]);
   const [Search, setSearch] = useState("");
-  const [isWait, setIsWait] = useState(false);
-  const [ResultStatus, setResultStatus] = useState({ Status: "" });
+  const [ResultStatus, setResultStatus] = useState({
+    Notes: true,
+    EditContent: true,
+    Message: "",
+  });
 
   const toolbarOptions = [
     ["bold", "italic", "underline", "strike"], // toggled buttons
@@ -47,54 +50,6 @@ export default function NoteEdit() {
     toolbar: toolbarOptions,
   };
 
-  useEffect(() => {
-    setTimeout(() => {
-      if (Account.Email === "" || Account.Email === undefined) {
-        setDataNote({ ...DataNote, Content: ContentNote });
-        setStorageNote((prev) =>
-          prev.map((i) =>
-            i._id === DataNote._id ? { ...i, Content: ContentNote } : i
-          )
-        );
-      } else {
-        setDataNote({ ...DataNote, Content: ContentNote });
-        axios
-          .post("http://localhost:9000/Note/ChangeContent", {
-            _id: DataNote._id,
-            Content: ContentNote,
-          })
-          .then(() => {
-            axios
-              .post("http://localhost:9000/Note/GetNoteByEmail", {
-                Email: Account.Email,
-              })
-              .then((rs) => {
-                setResultStatus({ Status: rs.data.Status });
-              })
-              .catch((err) => {
-                console.log(err);
-              });
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-      }
-    }, 1000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ContentNote]);
-
-  const ChangeTitle = (e) => {
-    const { name, value } = e.target;
-    setDataNote({ ...DataNote, [name]: value });
-    setStorageNote((prev) =>
-      prev.map((i) => (i._id === DataNote._id ? { ...i, Title: value } : i))
-    );
-  };
-
-  const ChangeSearch = (e) => {
-    setSearch(e.target.value);
-  };
-
   const GetDay = () => {
     const DateTime = new Date();
     const Ngay = DateTime.getDate();
@@ -103,28 +58,50 @@ export default function NoteEdit() {
     return Ngay + "/" + Thang + "/" + Nam;
   };
 
-  const AddNote = () => {
-    if (Account.Email === "" || Account.Email === undefined) {
-      const NewNote = {
-        _id: (Math.floor(Math.random() * 900000) + 100000).toString(),
-        DateCreate: GetDay(),
-        Title: "New Note",
-        Prioritize: 0,
-        EmailCreate: "",
-        Content: "",
-      };
+  const RandomID = () => {
+    return (Math.floor(Math.random() * 900000) + 100000).toString();
+  };
+
+  const AddNotes = () => {
+    const NewNote = {
+      _id: RandomID(),
+      Title: "New Note",
+      Prioritize: 0,
+      DateCreate: GetDay(),
+      EmailCreate: "",
+      Content: "",
+    };
+    if (!Account.Email) {
       setDataNote(NewNote);
-      setContentNote(NewNote.Content);
+      setContentNote("");
       setStorageNote([...StorageNote, NewNote]);
     } else {
+      setDataNote({});
+      setContentNote("");
       axios
         .post("http://localhost:9000/Note/SaveNote", {
+          Title: NewNote.Title,
+          Prioritize: NewNote.Prioritize,
           Email: Account.Email,
-          Content: "",
-          Title: "New Note",
+          Content: NewNote.Content,
         })
-        .then((rs) => {
-          setResultStatus({ Status: rs.data.Status });
+        .then(() => {
+          axios
+            .post("http://localhost:9000/Note/GetNoteByEmail", {
+              Email: Account.Email,
+            })
+            .then((rs) => {
+              if (rs.data && rs.data.length >= 1) {
+                setStorageNote(
+                  rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
+                );
+              } else {
+                setStorageNote([]);
+              }
+            })
+            .catch((err) => {
+              console.log(err);
+            });
         })
         .catch((err) => {
           console.log(err);
@@ -133,100 +110,75 @@ export default function NoteEdit() {
   };
 
   const SelectNote = (ID) => {
-    const NoteByID = StorageNote.find((A) => A._id === ID);
-    setDataNote(NoteByID);
-    setContentNote(NoteByID.Content);
+    const Note = StorageNote.find((i) => i._id === ID);
+    setDataNote(Note);
+    setContentNote(Note.Content);
   };
 
-  const AutoDeleteSearchNote = () => {
-    const ExistsSearchNote = SearchNote.filter((i) => i._id !== DataNote._id);
-    setSearchNote(ExistsSearchNote);
-    axios
-      .post("http://localhost:9000/Note/DeleteNote", { _id: DataNote._id })
-      .then((rs) => {
-        setResultStatus({ Status: rs.data.Status });
-        if (ExistsSearchNote.length >= 1) {
-          if (ExistsSearchNote[0]._id === DataNote._id) {
-            setDataNote(ExistsSearchNote[1]);
-            setContentNote(ExistsSearchNote[1].Content);
-          } else {
-            setDataNote(ExistsSearchNote[0]);
-            setContentNote(ExistsSearchNote[0].Content);
-          }
-        } else {
-          setDataNote({
-            _id: "",
-            Title: "",
-            Prioritize: 0,
-            DateCreate: "",
-            EmailCreate: "",
-            Content: "",
-          });
-          window.location.reload();
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+  const ChangeTitle = (e) => {
+    setDataNote({ ...DataNote, [e.target.name]: e.target.value });
+  };
+
+  const DeleteSearchNote = () => {
+    if (SearchNote.length >= 1) {
+      const HadDelete = SearchNote.filter((i) => i._id !== DataNote._id);
+      setSearchNote(HadDelete.sort((a, b) => b.Prioritize - a.Prioritize));
+    }
   };
 
   const DeleteNote = () => {
     if (!Account.Email) {
-      const ExistsNote = StorageNote.filter((i) => i._id !== DataNote._id);
-      if (ExistsNote.length === 0) {
-        window.localStorage.setItem("Notes", "");
-        setStorageNote(ExistsNote);
-      } else {
-        setStorageNote(ExistsNote);
-      }
-      if (SearchNote.length >= 1) {
-        AutoDeleteSearchNote();
-      }
-      if (StorageNote.length > 1) {
-        if (StorageNote[0]._id === DataNote._id) {
-          setDataNote(StorageNote[1]);
-          setContentNote(StorageNote[1].Content);
-        } else {
-          setDataNote(StorageNote[0]);
-          setContentNote(StorageNote[0].Content);
-        }
-      } else {
-        setDataNote({
-          _id: "",
-          Title: "",
-          Prioritize: 0,
-          DateCreate: "",
-          EmailCreate: "",
-          Content: "",
-        });
-        window.location.reload();
-      }
+      const HadDelete = StorageNote.filter((i) => i._id !== DataNote._id);
+      setStorageNote(HadDelete.sort((a, b) => b.Prioritize - a.Prioritize));
+      setDataNote({
+        _id: "",
+        Title: "",
+        Prioritize: 0,
+        DateCreate: "",
+        EmailCreate: "",
+        Content: "",
+      });
+      setContentNote("");
+      DeleteSearchNote();
     } else {
       axios
         .post("http://localhost:9000/Note/DeleteNote", { _id: DataNote._id })
-        .then((rs) => {
-          if (SearchNote.length >= 1) {
-            AutoDeleteSearchNote();
-          }
-          setResultStatus({ Status: rs.data.Status });
-          if (StorageNote.length >= 1) {
-            if (StorageNote[0]._id === DataNote._id) {
-              setDataNote(StorageNote[1]);
-              setContentNote(StorageNote[1].Content);
-            } else {
-              setDataNote(StorageNote[0]);
-              setContentNote(StorageNote[0].Content);
-            }
-          } else {
-            setDataNote({
-              _id: "",
-              Title: "",
-              Prioritize: 0,
-              DateCreate: "",
-              EmailCreate: "",
-              Content: "",
+        .then(() => {
+          axios
+            .post("http://localhost:9000/Note/GetNoteByEmail", {
+              Email: Account.Email,
+            })
+            .then((rs) => {
+              if (rs.data && rs.data.length >= 1) {
+                setStorageNote(
+                  rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
+                );
+                setDataNote({
+                  _id: "",
+                  Title: "",
+                  Prioritize: 0,
+                  DateCreate: "",
+                  EmailCreate: "",
+                  Content: "",
+                });
+                setContentNote("");
+                DeleteSearchNote();
+              } else {
+                setStorageNote([]);
+                setDataNote({
+                  _id: "",
+                  Title: "",
+                  Prioritize: 0,
+                  DateCreate: "",
+                  EmailCreate: "",
+                  Content: "",
+                });
+                setContentNote("");
+              }
+            })
+            .catch((err) => {
+              console.log(err);
             });
-          }
         })
         .catch((err) => {
           console.log(err);
@@ -234,116 +186,78 @@ export default function NoteEdit() {
     }
   };
 
-  const HandleSearch = (e) => {
-    e.preventDefault();
-    const StringSearch = new RegExp(Search, "i");
-    setSearchNote(() => {
-      return StorageNote.filter((i) => StringSearch.test(i.Title));
-    });
-  };
-
   const ChangePrioritize = () => {
-    if (!Account.Email) {
-      if (DataNote.Prioritize === 0) {
-        setDataNote({ ...DataNote, Prioritize: 1 });
-        setStorageNote((prev) =>
-          prev.map((i) =>
-            i._id === DataNote._id ? { ...i, Prioritize: 1 } : i
-          )
-        );
-      } else {
-        setDataNote({ ...DataNote, Prioritize: 0 });
-        setStorageNote((prev) =>
-          prev.map((i) =>
-            i._id === DataNote._id ? { ...i, Prioritize: 0 } : i
-          )
-        );
-      }
-      setIsWait(true);
+    if (DataNote.Prioritize === 0) {
+      setDataNote({ ...DataNote, Prioritize: 1 });
+      setResultStatus({ ...ResultStatus, Notes: false });
     } else {
-      if (DataNote.Prioritize === 0) {
-        axios
-          .post("http://localhost:9000/Note/ChangePrioritize", {
-            _id: DataNote._id,
-            Prioritize: 1,
-          })
-          .then((rs) => {
-            setDataNote({ ...DataNote, Prioritize: 1 });
-            setResultStatus({ Status: rs.data.Status });
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-      } else {
-        axios
-          .post("http://localhost:9000/Note/ChangePrioritize", {
-            _id: DataNote._id,
-            Prioritize: 0,
-          })
-          .then((rs) => {
-            setDataNote({ ...DataNote, Prioritize: 0 });
-            setResultStatus({ Status: rs.data.Status });
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-      }
+      setDataNote({ ...DataNote, Prioritize: 0 });
+      setResultStatus({ ...ResultStatus, Notes: false });
     }
   };
 
+  const ChangeSearch = (e) => {
+    setSearch(e.target.value);
+  };
+
+  //Start Page
   useEffect(() => {
-    setIsWait(true);
-    if (Account.Email === "" || Account.Email === undefined) {
-      if (window.localStorage.getItem("Notes")) {
-        const Notes = JSON.parse(window.localStorage.getItem("Notes"));
-        if (Notes) {
-          setStorageNote(() => {
-            return Notes.sort((a, b) => b.Prioritize - a.Prioritize);
-          });
-        }
+    if (!Account.Email) {
+      const GetNote = window.localStorage.getItem("Notes");
+      if (GetNote) {
+        setStorageNote(JSON.parse(GetNote));
+      } else {
+        setStorageNote([]);
       }
     } else {
-      if (window.localStorage.getItem("Notes")) {
-        const Notes = JSON.parse(window.localStorage.getItem("Notes"));
-        if (Notes) {
-          Notes.forEach((i) => {
-            axios
-              .post("http://localhost:9000/Note/SaveNote", {
-                Email: Account.Email,
-                Content: i.Content,
-                Title: i.Title,
-              })
-              .then((rs) => {
-                setResultStatus({ Status: rs.data.Status });
-                setIsWait(true);
-              })
-              .catch((err) => {
-                console.log(err);
-              });
-          });
+      const GetNote = window.localStorage.getItem("Notes");
+      if (GetNote) {
+        const Notes = JSON.parse(GetNote);
+        Notes.forEach((i) => {
           axios
-            .post("http://localhost:9000/Note/GetNoteByEmail", {
+            .post("http://localhost:9000/Note/SaveNote", {
+              Title: i.Title,
+              Prioritize: i.Prioritize,
               Email: Account.Email,
+              Content: i.Content,
             })
             .then((rs) => {
-              setStorageNote(
-                rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
-              );
-              window.localStorage.setItem("Notes", "");
-              setIsWait(true);
+              setResultStatus({ ...ResultStatus, Message: rs.data.Status });
             })
             .catch((err) => {
               console.log(err);
             });
-        }
+        });
+        window.localStorage.setItem("Notes", "");
+        axios
+          .post("http://localhost:9000/Note/GetNoteByEmail", {
+            Email: Account.Email,
+          })
+          .then((rs) => {
+            if (rs.data && rs.data.length >= 1) {
+              setStorageNote(
+                rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
+              );
+            } else {
+              setStorageNote([]);
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+          });
       } else {
         axios
           .post("http://localhost:9000/Note/GetNoteByEmail", {
             Email: Account.Email,
           })
           .then((rs) => {
-            setStorageNote(rs.data.sort((a, b) => b.Prioritize - a.Prioritize));
-            setIsWait(true);
+            if (rs.data && rs.data.length >= 1) {
+              setStorageNote(
+                rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
+              );
+            } else {
+              setStorageNote([]);
+            }
           })
           .catch((err) => {
             console.log(err);
@@ -351,25 +265,89 @@ export default function NoteEdit() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [Account]);
+  }, [Account.Email]);
+
+  //Save to LocalStorage
+  useEffect(() => {
+    if (!Account.Email) {
+      if (StorageNote.length > 0) {
+        window.localStorage.setItem("Notes", JSON.stringify(StorageNote));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [StorageNote]);
+
+  //Handle Search
+  useEffect(() => {
+    if (Search) {
+      const StringSearch = new RegExp(Search, "i");
+      const FindNote = StorageNote.filter((i) => StringSearch.test(i.Title));
+      setSearchNote(FindNote);
+    } else {
+      setSearchNote([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Search]);
 
   useEffect(() => {
-    if (StorageNote.length > 0) {
-      setStorageNote(() => {
-        return StorageNote.sort((a, b) => b.Prioritize - a.Prioritize);
-      });
+    setTimeout(() => {
+      setResultStatus({ ...ResultStatus, Notes: true });
+    }, 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ResultStatus.Notes]);
+
+  //Change Prioritize
+  useEffect(() => {
+    if (!Account.Email) {
+      if (StorageNote && StorageNote.length >= 1) {
+        const TitleChange = StorageNote.map((i) =>
+          i._id === DataNote._id ? { ...DataNote } : i
+        );
+        setStorageNote(TitleChange.sort((a, b) => b.Prioritize - a.Prioritize));
+      }
+    } else {
+      if (DataNote._id) {
+        axios
+          .post("http://localhost:9000/Note/ChangePrioritize", {
+            _id: DataNote._id,
+            Prioritize: DataNote.Prioritize,
+          })
+          .then(() => {
+            axios
+              .post("http://localhost:9000/Note/GetNoteByEmail", {
+                Email: Account.Email,
+              })
+              .then((rs) => {
+                if (rs.data && rs.data.length >= 1) {
+                  setStorageNote(
+                    rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
+                  );
+                } else {
+                  setStorageNote([]);
+                }
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+          })
+          .catch((err) => {
+            console.log(err);
+          });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [DataNote.Prioritize]);
 
+  //Save Change Title
   useEffect(() => {
-    setTimeout(() => {
-      setIsWait(false);
-    }, 2000);
-  }, [isWait]);
-
-  useEffect(() => {
-    if (Account.Email) {
+    if (!Account.Email) {
+      if (StorageNote && StorageNote.length >= 1) {
+        const TitleChange = StorageNote.map((i) =>
+          i._id === DataNote._id ? { ...DataNote } : i
+        );
+        setStorageNote(TitleChange.sort((a, b) => b.Prioritize - a.Prioritize));
+      }
+    } else {
       if (DataNote._id) {
         setTimeout(() => {
           axios
@@ -383,54 +361,92 @@ export default function NoteEdit() {
                   Email: Account.Email,
                 })
                 .then((rs) => {
-                  setResultStatus({ Status: rs.data.Status });
+                  if (rs.data && rs.data.length >= 1) {
+                    setStorageNote(
+                      rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
+                    );
+                  } else {
+                    setStorageNote([]);
+                  }
                 })
                 .catch((err) => {
                   console.log(err);
                 });
+            })
+            .catch((err) => {
+              console.log(err);
             });
-        }, 1500);
+        }, 1000);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [DataNote.Title]);
 
+  //Save Content Change current note
   useEffect(() => {
-    const StringSearch = new RegExp(Search, "i");
-    setSearchNote(() => {
-      return StorageNote.filter((i) => StringSearch.test(i.Title));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [Search]);
-
-  useEffect(() => {
-    if (Account.Email === "" || Account.Email === undefined) {
-      if (StorageNote.length !== 0) {
-        window.localStorage.setItem("Notes", JSON.stringify(StorageNote));
+    if (!Account.Email) {
+      setDataNote({ ...DataNote, Content: ContentNote });
+    } else {
+      setDataNote({ ...DataNote, Content: ContentNote });
+      if (DataNote._id) {
+        setTimeout(() => {
+          axios
+            .post("http://localhost:9000/Note/ChangeContent", {
+              _id: DataNote._id,
+              Content: ContentNote,
+            })
+            .then(() => {
+              axios
+                .post("http://localhost:9000/Note/GetNoteByEmail", {
+                  Email: Account.Email,
+                })
+                .then((rs) => {
+                  if (rs.data && rs.data.length >= 1) {
+                    setStorageNote(
+                      rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
+                    );
+                  } else {
+                    setStorageNote([]);
+                  }
+                })
+                .catch((err) => {
+                  console.log(err);
+                });
+            })
+            .catch((err) => {
+              console.log(err);
+            });
+        }, 1000);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [StorageNote]);
+  }, [ContentNote]);
 
+  //Save Content Change in notes
+  useEffect(() => {
+    if (!Account.Email) {
+      if (StorageNote && StorageNote.length >= 1) {
+        const NoteChange = StorageNote.map((i) =>
+          i._id === DataNote._id ? { ...DataNote, Content: ContentNote } : i
+        );
+        setStorageNote(NoteChange.sort((a, b) => b.Prioritize - a.Prioritize));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [DataNote.Content]);
+
+  useEffect(() => {
+    if(DataNote._id && SearchNote && SearchNote.length >= 1){
+      const Change = SearchNote.map(i => i._id === DataNote._id ? {...DataNote} : i)
+      setSearchNote(Change)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[DataNote])
+
+  //Hidden SideBar
   useEffect(() => {
     SetIsSideBar({ Sidebar: false, Footer: false });
   }, [SetIsSideBar]);
-
-  useEffect(() => {
-    if (ResultStatus.Status === "Success") {
-      axios
-        .post("http://localhost:9000/Note/GetNoteByEmail", {
-          Email: Account.Email,
-        })
-        .then((rs) => {
-          setStorageNote(rs.data.sort((a, b) => b.Prioritize - a.Prioritize));
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ResultStatus]);
 
   return (
     <div>
@@ -445,37 +461,18 @@ export default function NoteEdit() {
               ></img>
             </Link>
           </div>
-          <div>
-            <form
-              onSubmit={HandleSearch}
-              className="flex justify-stretch items-center py-1 bg-yellow-300"
-            >
-              <div>
-                <input
-                  className="w-[200px] ml-2 rounded-lg outline-none px-2"
-                  type="text"
-                  onChange={ChangeSearch}
-                ></input>
-              </div>
-              <div>
-                <button type="submit">
-                  <img
-                    className="w-[50px] p-2"
-                    src="./Icon/magnifying-glass-solid.svg"
-                    alt=""
-                  ></img>
-                </button>
-              </div>
-            </form>
+          <div className="flex w-full justify-center items-center py-1 bg-yellow-300">
+            <div>
+              <input
+                className="w-[230px] rounded-lg outline-none px-2"
+                type="text"
+                onChange={ChangeSearch}
+                placeholder="Search..."
+              ></input>
+            </div>
           </div>
           <div className="h-[580px] overflow-auto">
-            {isWait ? (
-              <div className="flex flex-col justify-center items-center">
-                <div className="w-[230px] h-[60px] bg-white rounded-lg mt-2 border-2 border-white animate-pulse"></div>
-                <div className="w-[230px] h-[60px] bg-white rounded-lg mt-2 border-2 border-white animate-pulse"></div>
-                <div className="w-[230px] h-[60px] bg-white rounded-lg mt-2 border-2 border-white animate-pulse"></div>
-              </div>
-            ) : (
+            {ResultStatus.Notes ? (
               <>
                 {Search
                   ? SearchNote.map((Ar) => (
@@ -485,7 +482,9 @@ export default function NoteEdit() {
                           className={
                             DataNote._id === Ar._id
                               ? "w-full bg-yellow-300 mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
-                              : "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
+                              : Ar.Prioritize === 0
+                              ? "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
+                              : "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-yellow-400"
                           }
                         >
                           <div>
@@ -509,7 +508,9 @@ export default function NoteEdit() {
                           className={
                             DataNote._id === Ar._id
                               ? "w-full bg-yellow-300 mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
-                              : "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
+                              : Ar.Prioritize === 0
+                              ? "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
+                              : "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-yellow-400"
                           }
                         >
                           <div>
@@ -531,7 +532,7 @@ export default function NoteEdit() {
                 ) : (
                   <div className="flex justify-center items-center">
                     <button
-                      onClick={AddNote}
+                      onClick={() => AddNotes()}
                       className={
                         !Account.Email && StorageNote.length === 3
                           ? "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 opacity-50 cursor-none pointer-events-none"
@@ -549,6 +550,12 @@ export default function NoteEdit() {
                   </div>
                 )}
               </>
+            ) : (
+              <div className="flex flex-col justify-center items-center">
+                <div className="w-[230px] h-[60px] bg-white rounded-lg mt-2 border-2 border-white animate-pulse"></div>
+                <div className="w-[230px] h-[60px] bg-white rounded-lg mt-2 border-2 border-white animate-pulse"></div>
+                <div className="w-[230px] h-[60px] bg-white rounded-lg mt-2 border-2 border-white animate-pulse"></div>
+              </div>
             )}
           </div>
         </div>
@@ -556,15 +563,19 @@ export default function NoteEdit() {
       <div className="flex flex-col ml-[250px]">
         <div className="flex justify-between items-center w-full bg-yellow-200">
           <div className="p-2">
-            {DataNote.Title || StorageNote.length !== 0 ? (
+            {DataNote._id ? (
               <input
-                onChange={ChangeTitle}
                 name="Title"
                 value={DataNote.Title}
+                onChange={ChangeTitle}
                 className="bg-yellow-200 outline-none truncate w-[500px]"
               ></input>
             ) : (
-              <input readOnly className="bg-yellow-200 outline-none"></input>
+              <input
+                readOnly
+                value={""}
+                className="bg-yellow-200 outline-none"
+              ></input>
             )}
           </div>
 
@@ -579,7 +590,7 @@ export default function NoteEdit() {
                   }
                 >
                   <button
-                    onClick={ChangePrioritize}
+                    onClick={() => ChangePrioritize()}
                     className="absolute flex justify-center items-center w-full h-full top-0 z-[1]"
                   >
                     <div>
@@ -596,7 +607,7 @@ export default function NoteEdit() {
                 </div>
                 <div className="relative w-[25px] h-[30px]">
                   <button
-                    onClick={DeleteNote}
+                    onClick={() => DeleteNote()}
                     className="absolute flex justify-center items-center top-0 z-[1]"
                   >
                     <div>
@@ -642,15 +653,24 @@ export default function NoteEdit() {
             </div>
           </div>
         ) : (
-          <div>
-            <ReactQuill
-              className="h-[590px]"
-              theme="snow"
-              value={ContentNote}
-              onChange={setContentNote}
-              modules={modules}
-            ></ReactQuill>
-          </div>
+          <>
+            {ResultStatus.EditContent ? (
+              <div>
+                <ReactQuill
+                  className="h-[590px]"
+                  theme="snow"
+                  value={ContentNote}
+                  onChange={setContentNote}
+                  modules={modules}
+                ></ReactQuill>
+              </div>
+            ) : (
+              <div>
+                <div className="w-full h-[60px] bg-slate-300 animate-pulse"></div>
+                <div className="w-full h-[590px] bg-slate-200 animate-pulse"></div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
