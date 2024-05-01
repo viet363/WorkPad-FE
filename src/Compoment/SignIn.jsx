@@ -20,8 +20,8 @@ export default function SignIn() {
   };
 
   useEffect(() => {
-    SetIsSideBar({Sidebar: false, Footer: true});
-  },[SetIsSideBar]);
+    SetIsSideBar({ Sidebar: false, Footer: true });
+  }, [SetIsSideBar]);
 
   const navigate = useNavigate();
 

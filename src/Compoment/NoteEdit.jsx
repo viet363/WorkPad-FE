@@ -436,12 +436,12 @@ export default function NoteEdit() {
   }, [DataNote.Content]);
 
   useEffect(() => {
-    if(DataNote._id && SearchNote && SearchNote.length >= 1){
-      const Change = SearchNote.map(i => i._id === DataNote._id ? {...DataNote} : i)
+    if (DataNote._id && SearchNote && SearchNote.length >= 1) {
+      const Change = SearchNote.map(i => i._id === DataNote._id ? { ...DataNote } : i)
       setSearchNote(Change)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[DataNote])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [DataNote])
 
   //Hidden SideBar
   useEffect(() => {
@@ -476,57 +476,57 @@ export default function NoteEdit() {
               <>
                 {Search
                   ? SearchNote.map((Ar) => (
-                      <div className="flex justify-center items-center">
-                        <button
-                          onClick={() => SelectNote(Ar._id)}
-                          className={
-                            DataNote._id === Ar._id
-                              ? "w-full bg-yellow-300 mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
-                              : Ar.Prioritize === 0
+                    <div className="flex justify-center items-center">
+                      <button
+                        onClick={() => SelectNote(Ar._id)}
+                        className={
+                          DataNote._id === Ar._id
+                            ? "w-full bg-yellow-300 mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
+                            : Ar.Prioritize === 0
                               ? "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
                               : "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-yellow-400"
-                          }
-                        >
-                          <div>
-                            {Ar.Title === "" ? (
-                              <p className="truncate w-[150px] h-[40px]">
-                                Empty
-                              </p>
-                            ) : (
-                              <p className="truncate w-[150px] h-[40px]">
-                                {Ar.Title}
-                              </p>
-                            )}
-                          </div>
-                        </button>
-                      </div>
-                    ))
+                        }
+                      >
+                        <div>
+                          {Ar.Title === "" ? (
+                            <p className="truncate w-[150px] h-[40px]">
+                              Empty
+                            </p>
+                          ) : (
+                            <p className="truncate w-[150px] h-[40px]">
+                              {Ar.Title}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    </div>
+                  ))
                   : StorageNote.map((Ar) => (
-                      <div className="flex justify-center items-center">
-                        <button
-                          onClick={() => SelectNote(Ar._id)}
-                          className={
-                            DataNote._id === Ar._id
-                              ? "w-full bg-yellow-300 mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
-                              : Ar.Prioritize === 0
+                    <div className="flex justify-center items-center">
+                      <button
+                        onClick={() => SelectNote(Ar._id)}
+                        className={
+                          DataNote._id === Ar._id
+                            ? "w-full bg-yellow-300 mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
+                            : Ar.Prioritize === 0
                               ? "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-white"
                               : "w-full bg-white mx-3 rounded-lg flex items-center justify-center mt-2 py-2 border-2 border-yellow-400"
-                          }
-                        >
-                          <div>
-                            {Ar.Title === "" ? (
-                              <p className="truncate w-[150px] h-[40px]">
-                                Empty
-                              </p>
-                            ) : (
-                              <p className="truncate w-[150px] h-[40px]">
-                                {Ar.Title}
-                              </p>
-                            )}
-                          </div>
-                        </button>
-                      </div>
-                    ))}
+                        }
+                      >
+                        <div>
+                          {Ar.Title === "" ? (
+                            <p className="truncate w-[150px] h-[40px]">
+                              Empty
+                            </p>
+                          ) : (
+                            <p className="truncate w-[150px] h-[40px]">
+                              {Ar.Title}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    </div>
+                  ))}
                 {Search ? (
                   <div></div>
                 ) : (

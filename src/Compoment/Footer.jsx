@@ -5,7 +5,7 @@ export default function Footer() {
     <div className='flex flex-wrap bg-zinc-500 text-white items-center justify-between pl-[20%] pr-[20%] pt-[25px] pb-[25px]'>
       <div className='text-center'>
         <h1 className='text-[40px] text-yellow-400'>WorkPad</h1>
-        <br/>
+        <br />
         <p>Được phát triển bởi nhóm 8</p>
         <p>Môn Mã Nguồn Mở</p>
       </div>

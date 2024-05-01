@@ -2,10 +2,10 @@ import React, { useContext, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { StatusContext } from "../Context/Status";
 export default function PageMain() {
-  const [ , , , SetIsSideBar] = useContext(StatusContext)
+  const [, , , SetIsSideBar] = useContext(StatusContext)
   useEffect(() => {
-    SetIsSideBar({Sidebar: true, Footer: true});
-  },[SetIsSideBar]);
+    SetIsSideBar({ Sidebar: true, Footer: true });
+  }, [SetIsSideBar]);
   return (
     <div className="flex flex-col pt-[100px]">
       <div className="flex flex-row-reverse justify-between flex-wrap gap-[70px]">
