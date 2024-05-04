@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { StatusContext } from "../Context/Status";
 import { Link } from "react-router-dom";
 import ReactQuill from "react-quill";
@@ -50,6 +50,16 @@ export default function NoteEdit() {
     toolbar: toolbarOptions,
   };
 
+  const debounce = (callback, delay) => {
+    let TimeOut = null;
+    return (...agrs) => {
+      clearTimeout(TimeOut);
+      TimeOut = setTimeout(() => {
+        callback(...agrs);
+      }, delay);
+    };
+  };
+
   const GetDay = () => {
     const DateTime = new Date();
     const Ngay = DateTime.getDate();
@@ -76,7 +86,6 @@ export default function NoteEdit() {
       setContentNote("");
       setStorageNote([...StorageNote, NewNote]);
     } else {
-      setDataNote({});
       setContentNote("");
       axios
         .post("http://localhost:9000/Note/SaveNote", {
@@ -85,7 +94,8 @@ export default function NoteEdit() {
           Email: Account.Email,
           Content: NewNote.Content,
         })
-        .then(() => {
+        .then((rs) => {
+          setDataNote({ ...NewNote, _id: rs.data._id });
           axios
             .post("http://localhost:9000/Note/GetNoteByEmail", {
               Email: Account.Email,
@@ -338,6 +348,40 @@ export default function NoteEdit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [DataNote.Prioritize]);
 
+  const SaveChangeTitle = useMemo(() => {
+    return debounce((Name) => {
+      axios
+        .post("http://localhost:9000/Note/ChangeTitle", {
+          _id: DataNote._id,
+          Title: Name,
+        })
+        .then((rs) => {
+          if (rs.data.Status === "Success") {
+            axios
+              .post("http://localhost:9000/Note/GetNoteByEmail", {
+                Email: Account.Email,
+              })
+              .then((rs) => {
+                if (rs.data && rs.data.length >= 1) {
+                  setStorageNote(
+                    rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
+                  );
+                } else {
+                  setStorageNote([]);
+                }
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }, 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   //Save Change Title
   useEffect(() => {
     if (!Account.Email) {
@@ -349,34 +393,8 @@ export default function NoteEdit() {
       }
     } else {
       if (DataNote._id) {
-        setTimeout(() => {
-          axios
-            .post("http://localhost:9000/Note/ChangeTitle", {
-              _id: DataNote._id,
-              Title: DataNote.Title,
-            })
-            .then(() => {
-              axios
-                .post("http://localhost:9000/Note/GetNoteByEmail", {
-                  Email: Account.Email,
-                })
-                .then((rs) => {
-                  if (rs.data && rs.data.length >= 1) {
-                    setStorageNote(
-                      rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
-                    );
-                  } else {
-                    setStorageNote([]);
-                  }
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            })
-            .catch((err) => {
-              console.log(err);
-            });
-        }, 1000);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        SaveChangeTitle(DataNote.Title);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -387,15 +405,14 @@ export default function NoteEdit() {
     if (!Account.Email) {
       setDataNote({ ...DataNote, Content: ContentNote });
     } else {
-      setDataNote({ ...DataNote, Content: ContentNote });
       if (DataNote._id) {
-        setTimeout(() => {
-          axios
-            .post("http://localhost:9000/Note/ChangeContent", {
-              _id: DataNote._id,
-              Content: ContentNote,
-            })
-            .then(() => {
+        axios
+          .post("http://localhost:9000/Note/ChangeContent", {
+            _id: DataNote._id,
+            Content: ContentNote,
+          })
+          .then((rs) => {
+            if (rs.data.Status === "Success") {
               axios
                 .post("http://localhost:9000/Note/GetNoteByEmail", {
                   Email: Account.Email,
@@ -405,6 +422,7 @@ export default function NoteEdit() {
                     setStorageNote(
                       rs.data.sort((a, b) => b.Prioritize - a.Prioritize)
                     );
+                    setDataNote({ ...DataNote, Content: ContentNote });
                   } else {
                     setStorageNote([]);
                   }
@@ -412,11 +430,11 @@ export default function NoteEdit() {
                 .catch((err) => {
                   console.log(err);
                 });
-            })
-            .catch((err) => {
-              console.log(err);
-            });
-        }, 1000);
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+          });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -437,11 +455,13 @@ export default function NoteEdit() {
 
   useEffect(() => {
     if (DataNote._id && SearchNote && SearchNote.length >= 1) {
-      const Change = SearchNote.map(i => i._id === DataNote._id ? { ...DataNote } : i)
-      setSearchNote(Change)
+      const Change = SearchNote.map((i) =>
+        i._id === DataNote._id ? { ...DataNote } : i
+      );
+      setSearchNote(Change);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [DataNote])
+  }, [DataNote]);
 
   //Hidden SideBar
   useEffect(() => {

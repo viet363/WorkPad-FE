@@ -14,7 +14,7 @@ export default function Status({ Compoment }) {
   const Email = window.localStorage.getItem("Email");
   const Password = window.localStorage.getItem("TokenPs");
 
-  useEffect(() => {
+  const ChangeAccount = () => {
     if (Email) {
       axios
         .post("http://localhost:9000/Account/GetAccount", {
@@ -24,6 +24,7 @@ export default function Status({ Compoment }) {
         .then((rs) => {
           if (rs.data.Status !== "Fauld") {
             setAccount(rs.data);
+
           } else {
             setAccount({
               _id: "",
@@ -38,6 +39,11 @@ export default function Status({ Compoment }) {
           console.log(err);
         });
     }
+  }
+
+  useEffect(() => {
+    ChangeAccount()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [Email, Password]);
 
   return (
@@ -48,7 +54,8 @@ export default function Status({ Compoment }) {
         isSideBar,
         SetIsSideBar,
         Account,
-        setAccount
+        setAccount,
+        ChangeAccount
       ]}
     >
       {Compoment}
