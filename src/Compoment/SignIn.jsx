@@ -189,7 +189,7 @@ export default function SignIn() {
     console.log(forgetPassword.ConfirmPass === forgetPassword.NewPass);
     if (forgetPassword.ConfirmPass === forgetPassword.NewPass) {
       axios
-        .post("http://localhost:9000/Account/ChangePassword", {
+        .post("http://localhost:9000/Account/ChangePasswordWithCode", {
           Email: forgetPassword.Email,
           Password: forgetPassword.NewPass,
         })

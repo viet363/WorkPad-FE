@@ -21,8 +21,8 @@ export default function SignUp() {
   };
 
   useEffect(() => {
-    SetIsSideBar({ Sidebar: false, Footer: true });
-  }, [SetIsSideBar]);
+    SetIsSideBar({Sidebar: false, Footer: true});
+  },[SetIsSideBar]);
 
   const navigate = useNavigate();
 
@@ -67,7 +67,7 @@ export default function SignUp() {
         <div className="overflow-hidden h-[702px]">
           <img src="./Image/SignInBR.png" className="w-[960px]" alt="" />
         </div>
-        <div className="w-[558px] h-[702px] gap-5 flex justify-center items-center flex-col bg-[#efee9b] -mr-[1000px]">
+        <div className="w-[569px] h-[702px] gap-5 flex justify-center items-center flex-col bg-[#efee9b] -mr-[1000px]">
           <h1 className="text-[50px] items-center font-bold mb-4">Đăng ký</h1>
           <form onSubmit={HandleSignUp}>
             <div className="mb-4">
