@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { StatusContext } from "../Context/Status";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -21,13 +21,26 @@ export default function Account() {
   const [statusPass, setStatusPass] = useState({
     NewPassword: true,
     OldPassword: true,
+    Password: true,
   });
+
+  const [statusName, setStatusName] = useState(true);
 
   const [isWait, setIsWait] = useState({
     Wait: false,
     Status: false,
     Open: false,
   });
+
+  const debounce = (callback, delay) => {
+    let TimeOut = null;
+    return (...agrs) => {
+      clearTimeout(TimeOut);
+      TimeOut = setTimeout(() => {
+        callback(...agrs);
+      }, delay);
+    };
+  };
 
   useEffect(() => {
     SetIsSideBar({ Sidebar: true, Footer: true });
@@ -76,7 +89,7 @@ export default function Account() {
 
   const HandleChangePass = (e) => {
     e.preventDefault();
-    setIsWait({ Open: true, Wait: false, Status: false })
+    setIsWait({ Open: true, Wait: false, Status: false });
     if (changeInfor.NewPassword === changeInfor.ConfirmPass) {
       axios
         .post("http://localhost:9000/Account/ChangePassword", {
@@ -93,10 +106,10 @@ export default function Account() {
               ConfirmPass: "",
             });
             window.localStorage.setItem("TokenPs", rs.data.Password);
-            setIsWait({ Open: true, Wait: false, Status: true })
+            setIsWait({ Open: true, Wait: false, Status: true });
           } else {
             setStatusPass({ ...statusPass, OldPassword: false });
-            setIsWait({ Wait: false, Status: false, Open: false })
+            setIsWait({ Wait: false, Status: false, Open: false });
           }
         })
         .catch((err) => {
@@ -104,26 +117,65 @@ export default function Account() {
         });
     } else {
       setStatusPass({ ...statusPass, NewPassword: false });
-      setIsWait({ Wait: false, Status: false, Open: false })
+      setIsWait({ Wait: false, Status: false, Open: false });
     }
   };
 
   useEffect(() => {
     if (isWait.Open) {
-      setIsWait({ Wait: true, Open: true, Status: false })
+      setIsWait({ Wait: true, Open: true, Status: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isWait.Open])
+  }, [isWait.Open]);
 
   useEffect(() => {
     if (isWait.Status) {
       setTimeout(() => {
-        setIsWait({ Wait: false, Status: false, Open: false })
-        ChangeOpen("Password", false)
-      }, 1500)
+        setIsWait({ Wait: false, Status: false, Open: false });
+        ChangeOpen("Password", false);
+      }, 1500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isWait.Status])
+  }, [isWait.Status]);
+
+  const CheckName = useMemo(() => {
+    return debounce((Name) => {
+      if (Name) {
+        if (Name.length < 5 || Name.length > 35) {
+          setStatusName(false);
+        } else {
+          setStatusName(true);
+        }
+      } else {
+        setStatusName(false);
+      }
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    CheckName(changeInfor.Ten);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeInfor.Ten]);
+
+  const CheckPass = useMemo(() => {
+    return debounce((Password) => {
+      if (Password) {
+        if (Password.length < 5) {
+          setStatusPass({ ...statusPass, Password: false })
+        } else {
+          setStatusPass({ ...statusPass, Password: true })
+        }
+      } else {
+        setStatusPass({ ...statusPass, Password: false })
+      }
+    }, 1000)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    CheckPass(changeInfor.NewPassword)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeInfor.NewPassword])
 
   useEffect(() => {
     setTimeout(() => {
@@ -170,18 +222,30 @@ export default function Account() {
                 }
               >
                 <div className="flex flex-col justify-center items-center gap-5 py-3">
-                  <div>
+                  <div className="relative">
                     <input
                       className="w-[700px] py-2 px-3 outline-none rounded-xl"
                       value={changeInfor.Ten}
                       name="Ten"
                       onChange={ChangeSave}
                     ></input>
+                    {statusName ? (
+                      <></>
+                    ) : (
+                      <div className="absolute z-10 bg-slate-100 mt-1 py-2 px-3 text-red-400">
+                        <p>Tên phải có ít nhất 5 ký tự và tối đa 35 ký tự!</p>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <button
                       type="submit"
-                      className="bg-white border-2 border-white text-slate-500 rounded-3xl px-4 py-1 duration-200 ease-linear hover:bg-slate-500 hover:text-white "
+                      disabled={!statusName}
+                      className={
+                        statusName
+                          ? "bg-white border-2 border-white text-slate-500 rounded-3xl px-4 py-1 duration-200 ease-linear hover:bg-slate-500 hover:text-white"
+                          : "bg-white border-2 border-white text-slate-500 rounded-3xl px-4 py-1 duration-200 ease-linear cursor-default opacity-70"
+                      }
                     >
                       Xác Nhận
                     </button>
@@ -260,7 +324,7 @@ export default function Account() {
                       type="Password"
                     ></input>
                   </div>
-                  <div>
+                  <div className="relative">
                     <input
                       minLength={5}
                       className="w-[700px] py-2 px-3 outline-none rounded-xl "
@@ -270,6 +334,13 @@ export default function Account() {
                       onChange={ChangeSave}
                       type="Password"
                     ></input>
+                    {statusPass.Password ? (
+                      <></>
+                    ) : (
+                      <div className="absolute z-10 bg-slate-100 mt-1 py-2 px-3 text-red-400">
+                        <p>Mật khẩu phải có ít nhất 5 ký tự</p>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <input
@@ -288,8 +359,9 @@ export default function Account() {
                   </div>
                   <div>
                     <button
+                      disabled={!statusPass.Password}
                       type="submit"
-                      className="bg-white border-2 border-white text-slate-500 rounded-3xl px-4 py-1 duration-200 ease-linear hover:bg-slate-500 hover:text-white "
+                      className={statusPass.Password ? "bg-white border-2 border-white text-slate-500 rounded-3xl px-4 py-1 duration-200 ease-linear hover:bg-slate-500 hover:text-white " : "bg-white border-2 border-white text-slate-500 rounded-3xl px-4 py-1 cursor-default opacity-70"}
                     >
                       Xác Nhận
                     </button>
